@@ -22,14 +22,19 @@ ROOT = Path(__file__).resolve().parent.parent
 
 ART_DIR = ROOT / "art"
 CONTENT_DIR = ROOT / "content"
+SKETCHES_DIR = CONTENT_DIR / "sketches"
+ARTWORKS_DIR = CONTENT_DIR / "artworks"
+PUBLIC_ART_DIR = ROOT / "public" / "art"
 LOG_DIR = ROOT / "logs"
 STATE_DIR = ROOT / "state"
 
-QUEUE_FILE = CONTENT_DIR / "queue.csv"
 LOG_FILE = LOG_DIR / "posting.log"
 DAILY_COUNTER_FILE = STATE_DIR / "daily_count.json"
 IG_SESSION_FILE = STATE_DIR / "instagram_session.json"
 PINTEREST_CRED_ROOT = STATE_DIR / "pinterest"
+
+# Content directories the bot scans for pending items
+CONTENT_DIRS = (SKETCHES_DIR, ARTWORKS_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -84,9 +89,16 @@ PINTEREST_PASSWORD = _env_str("PINTEREST_PASSWORD")
 # py3-pinterest needs it to list your boards. It is also accepted as the
 # PINTEREST_USERNAME repository secret.
 PINTEREST_USERNAME = _env_str("PINTEREST_USERNAME")
-# Optional: official Pinterest API v5 token. When set, it is used instead of
-# the unofficial py3-pinterest session (much less likely to be rate limited).
+# Optional: official Pinterest API v5 access token. When set together with
+# PINTEREST_REFRESH_TOKEN the bot uses the documented API instead of
+# py3-pinterest (kept for backward compatibility).
 PINTEREST_ACCESS_TOKEN = _env_str("PINTEREST_ACCESS_TOKEN")
+# Pinterest API v5 OAuth credentials. When both PINTEREST_CLIENT_ID and
+# PINTEREST_REFRESH_TOKEN are set, the bot exchanges the refresh token for an
+# access token at run time and uses the official API v5.
+PINTEREST_CLIENT_ID = _env_str("PINTEREST_CLIENT_ID")
+PINTEREST_CLIENT_SECRET = _env_str("PINTEREST_CLIENT_SECRET")
+PINTEREST_REFRESH_TOKEN = _env_str("PINTEREST_REFRESH_TOKEN")
 # Used when a queue row leaves pinterest_board empty.
 PINTEREST_DEFAULT_BOARD = _env_str("PINTEREST_DEFAULT_BOARD", "Art")
 

@@ -150,6 +150,47 @@ def resolve_image(image_filename: str, *, art_dir: Optional[Path] = None) -> Pat
     return candidate
 
 
+def resolve_item_image(image_field: str) -> Path:
+    """Resolve a JSON item's ``image`` field to a file under ``public/art/``.
+
+    Accepts three forms:
+      * ``art/foo.png``        -> public/art/foo.png
+      * ``/art/foo.png``       -> public/art/foo.png
+      * ``foo.png``            -> public/art/foo.png
+
+    Raises ``ValueError`` on empty or traversal paths and
+    ``FileNotFoundError`` when the resolved file does not exist.
+    """
+    raw = (image_field or "").strip()
+    if not raw:
+        raise ValueError("Item has an empty image field")
+
+    # Strip leading "art/" or "/art/" so we always work with a bare filename
+    name = raw
+    if name.startswith("/"):
+        name = name[1:]
+    if name.startswith("art/"):
+        name = name[4:]
+    # Also strip a leading "./"
+    if name.startswith("./"):
+        name = name[2:]
+    # Extract just the basename to prevent traversal
+    from pathlib import PurePosixPath
+    name = str(PurePosixPath(name).name)
+    if not name:
+        raise ValueError(f"image field resolved to an empty filename: {image_field!r}")
+
+    candidate = (config.PUBLIC_ART_DIR / name).resolve()
+    if not candidate.is_relative_to(config.PUBLIC_ART_DIR.resolve()):
+        raise ValueError(f"image field escapes public/art/: {image_field!r}")
+    if not candidate.is_file():
+        raise FileNotFoundError(
+            f"Artwork not found: {candidate}. Upload the image to public/art/ "
+            f"(TinaCMS media root) or fix the image field in the JSON item."
+        )
+    return candidate
+
+
 def describe_row(row: dict) -> str:
     """Compact one-line description of a queue row for the log."""
     return (

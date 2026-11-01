@@ -1,206 +1,203 @@
-"""CSV queue handling.
+"""JSON content queue handling.
 
-``content/queue.csv`` is the single source of truth for what still needs to be
-posted. Each row carries per-platform flags (``posted_instagram`` /
-``posted_pinterest``) so a row with ``platform=both`` can be published to
-Instagram first and Pinterest later without being posted twice.
+The bot now scans "content/sketches/*.json" and "content/artworks/*.json"
+instead of "content/queue.csv". Each JSON item describes one artwork and
+carries flags maintained by the bot:
 
-Writes are atomic (temp file + ``os.replace``) because GitHub Actions may kill
-the job at any moment; a half written queue would be committed back to the repo.
+* "posted" (bool)       - overall: true when every applicable platform is done
+* "posted_at" (str)     - UTC ISO-8601 timestamp of the last platform post
+* "posted_instagram" (bool) - Instagram-specific (bot-maintained)
+* "posted_pinterest" (bool) - Pinterest-specific (bot-maintained)
+
+Writes are atomic (temp file + "os.replace") because GitHub Actions may kill
+the job at any moment.
 """
 
 from __future__ import annotations
 
-import csv
+import json
 import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from . import common, config
 
-# Columns that describe the content
-BASE_FIELDS = [
-    "id",
-    "platform",
-    "image_filename",
-    "caption",
-    "alt_text",
-    "hashtags",
-    "pinterest_board",
-]
-# Columns the bot maintains to prevent double posting
-FLAG_FIELDS = ["posted_instagram", "posted_pinterest", "posted", "posted_at"]
-FIELD_NAMES = BASE_FIELDS + FLAG_FIELDS
-
 PLATFORMS = ("instagram", "pinterest")
 
-_PLATFORM_ALIASES = {
-    "both": "both",
-    "all": "both",
-    "everywhere": "both",
-    "instagram": "instagram",
-    "ig": "instagram",
-    "insta": "instagram",
-    "pinterest": "pinterest",
-    "pin": "pinterest",
-    "pins": "pinterest",
-}
 
-_TRUTHY = {"1", "true", "yes", "y", "x", "done", "posted"}
+def _read_json_file(path: Path) -> Optional[Dict]:
+    """Read and parse a single JSON content file."""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if isinstance(data, dict):
+            return data
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    return None
 
 
-def normalize_platform(value: str) -> str:
-    """Map loose platform spellings (``ig``, ``pins``...) to canonical names."""
-    key = (value or "").strip().lower()
-    return _PLATFORM_ALIASES.get(key, key)
+def scan_content() -> List[Dict]:
+    """Scan all JSON content directories and return item dicts.
+
+    Each returned dict includes every field from the JSON file plus:
+    * "filepath" - absolute path to the source JSON file
+    * "slug" - filename without extension
+    """
+    items: List[Dict] = []
+    for content_dir in config.CONTENT_DIRS:
+        if not content_dir.is_dir():
+            continue
+        for json_file in sorted(content_dir.glob("*.json")):
+            data = _read_json_file(json_file)
+            if data is None:
+                continue
+            data["filepath"] = str(json_file)
+            data["slug"] = json_file.stem
+            # Ensure bot-maintained fields exist with safe defaults
+            data.setdefault("posted", False)
+            data.setdefault("posted_at", None)
+            data.setdefault("posted_instagram", False)
+            data.setdefault("posted_pinterest", False)
+            items.append(data)
+    return items
 
 
-def is_truthy(value: str) -> bool:
-    return (value or "").strip().lower() in _TRUTHY
+def platforms_for(item: Dict) -> List[str]:
+    """Determine which platforms this item should be posted to.
+
+    Instagram:  only if "post_to_instagram" is not explicitly False
+    Pinterest:  only if "pinterest_board" is a non-empty string
+    """
+    targets: List[str] = []
+
+    post_to_ig = item.get("post_to_instagram")
+    if post_to_ig is not False:
+        targets.append("instagram")
+
+    board = (item.get("pinterest_board") or "").strip()
+    if board:
+        targets.append("pinterest")
+
+    return targets
 
 
-def read_queue(path: Optional[Path] = None) -> List[Dict[str, str]]:
-    """Read the queue into a list of normalised dictionaries."""
-    queue_path = Path(path or config.QUEUE_FILE)
-    if not queue_path.is_file():
-        raise FileNotFoundError(f"Queue file not found: {queue_path}")
-
-    with queue_path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        rows: List[Dict[str, str]] = []
-        for raw in reader:
-            if not any((value or "").strip() for value in raw.values()):
-                continue  # skip blank lines
-            rows.append({field: (raw.get(field) or "").strip() for field in FIELD_NAMES})
-    return rows
+def is_posted(item: Dict) -> bool:
+    """True when the item's "posted" flag is truthy."""
+    return bool(item.get("posted"))
 
 
-def write_queue(rows: Iterable[Dict[str, str]], path: Optional[Path] = None) -> None:
-    """Write the queue back atomically, preserving all known columns."""
-    queue_path = Path(path or config.QUEUE_FILE)
-    queue_path.parent.mkdir(parents=True, exist_ok=True)
+def is_platform_posted(item: Dict, platform: str) -> bool:
+    """True when this item was already published on "platform"."""
+    return bool(item.get(f"posted_{platform}", False))
 
+
+def is_pending_for(item: Dict, platform: str) -> bool:
+    """True when the item still needs to be posted to "platform"."""
+    return (
+        not is_posted(item)
+        and platform in platforms_for(item)
+        and not is_platform_posted(item, platform)
+    )
+
+
+def find_next(items: List[Dict], platform: str) -> Optional[Dict]:
+    """Return the first item that still needs to be posted to "platform"."""
+    for item in items:
+        if is_pending_for(item, platform):
+            return item
+    return None
+
+
+def pending_count(items: List[Dict], platform: str) -> int:
+    return sum(1 for item in items if is_pending_for(item, platform))
+
+
+def mark_platform_posted_in_file(
+    item: Dict,
+    platform: str,
+    timestamp: Optional[str] = None,
+) -> bool:
+    """Mark "item" as posted on "platform" in its JSON file.
+
+    Also sets "posted_at". Sets the overall "posted" flag to true only
+    when every applicable platform has been posted.
+
+    Returns "True" when the file was found and updated.
+    """
+    filepath = item.get("filepath")
+    if not filepath or not Path(filepath).is_file():
+        return False
+
+    ts = timestamp or config.utc_now()
+
+    try:
+        with Path(filepath).open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return False
+
+    data[f"posted_{platform}"] = True
+    data["posted_at"] = ts
+
+    # Determine if all applicable platforms are done
+    applicable = platforms_for(data)
+    all_done = all(data.get(f"posted_{p}", False) for p in applicable)
+    if all_done:
+        data["posted"] = True
+
+    # Write atomically
     handle_fd, tmp_name = tempfile.mkstemp(
-        dir=str(queue_path.parent), prefix=".queue-", suffix=".csv", text=True
+        dir=str(Path(filepath).parent), prefix=".item-", suffix=".json", text=True
     )
     try:
-        with os.fdopen(handle_fd, "w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(
-                handle,
-                fieldnames=FIELD_NAMES,
-                extrasaction="ignore",
-                lineterminator="\n",
-            )
-            writer.writeheader()
-            for row in rows:
-                writer.writerow({field: row.get(field, "") for field in FIELD_NAMES})
-        os.replace(tmp_name, queue_path)
+        with os.fdopen(handle_fd, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, indent=2, ensure_ascii=False)
+            handle.write("\\n")
+        os.replace(tmp_name, filepath)
     except BaseException:
         if os.path.exists(tmp_name):
             os.unlink(tmp_name)
         raise
 
+    # Update the in-memory item too
+    item[f"posted_{platform}"] = True
+    item["posted_at"] = ts
+    if all_done:
+        item["posted"] = True
 
-def platforms_for(row: Dict[str, str]) -> List[str]:
-    """Which platforms this row must be published to."""
-    platform = normalize_platform(row.get("platform", ""))
-    if platform == "both":
-        return list(PLATFORMS)
-    if platform in PLATFORMS:
-        return [platform]
-    return []
+    return True
 
 
-def is_posted(row: Dict[str, str], platform: str) -> bool:
-    """True when this row was already published on ``platform``."""
-    if is_truthy(row.get(f"posted_{platform}", "")):
-        return True
-    # ``posted`` is the manual kill switch: true means "never touch this row".
-    return is_truthy(row.get("posted", ""))
-
-
-def is_pending(row: Dict[str, str], platform: str) -> bool:
-    return platform in platforms_for(row) and not is_posted(row, platform)
-
-
-def find_next(rows: Iterable[Dict[str, str]], platform: str) -> Optional[Dict[str, str]]:
-    """Return the first row that still needs to be posted to ``platform``."""
-    for row in rows:
-        if is_pending(row, platform):
-            return row
-    return None
-
-
-def pending_count(rows: Iterable[Dict[str, str]], platform: str) -> int:
-    return sum(1 for row in rows if is_pending(row, platform))
-
-
-def mark_posted(
-    row: Dict[str, str], platform: str, timestamp: Optional[str] = None
-) -> Dict[str, str]:
-    """Flag ``row`` as posted on ``platform`` (mutates and returns the row)."""
-    row[f"posted_{platform}"] = "true"
-    done_everywhere = all(is_truthy(row.get(f"posted_{name}", "")) for name in platforms_for(row))
-    row["posted"] = "true" if done_everywhere else "false"
-    row["posted_at"] = timestamp or config.utc_now()
-    return row
-
-
-def mark_posted_in_file(
-    row_id: str,
-    platform: str,
-    path: Optional[Path] = None,
-    timestamp: Optional[str] = None,
-) -> bool:
-    """Mark a row as posted by id, re-reading the file first (safe merging).
-
-    Returns ``True`` when the row was found and updated.
-    """
-    rows = read_queue(path)
-    for row in rows:
-        if row.get("id", "").strip() == str(row_id).strip():
-            mark_posted(row, platform, timestamp)
-            write_queue(rows, path)
-            return True
-    return False
-
-
-def validate(rows: List[Dict[str, str]], logger: Optional[logging.Logger] = None) -> List[str]:
-    """Return a list of human readable problems found in the queue."""
+def validate(items: List[Dict], logger: Optional[logging.Logger] = None) -> List[str]:
+    """Return a list of human readable problems found in the content items."""
     problems: List[str] = []
-    seen_ids = set()
 
-    for index, row in enumerate(rows, start=2):  # start=2: line 1 is the header
-        row_id = row.get("id", "").strip()
-        label = f"line {index} (id={row_id or 'missing'})"
+    for item in items:
+        slug = item.get("slug", "?")
+        filepath = item.get("filepath", "")
+        label = f"{filepath} (slug={slug})"
 
-        if not row_id:
-            problems.append(f"{label}: id is required")
-        elif row_id in seen_ids:
-            problems.append(f"{label}: duplicate id")
-        seen_ids.add(row_id)
-
-        if not platforms_for(row):
-            problems.append(
-                f"{label}: platform must be 'both', 'instagram' or 'pinterest' "
-                f"(got {row.get('platform')!r})"
-            )
-
-        if not (row.get("caption") or "").strip():
+        if not (item.get("caption") or "").strip():
             problems.append(f"{label}: caption is empty")
 
+        if not (item.get("alt_text") or "").strip():
+            problems.append(f"{label}: alt_text is required")
+
         try:
-            common.resolve_image(row.get("image_filename", ""))
+            common.resolve_item_image(item.get("image", ""))
         except (ValueError, FileNotFoundError) as exc:
             problems.append(f"{label}: {exc}")
 
-        if "pinterest" in platforms_for(row) and not (
-            (row.get("pinterest_board") or "").strip() or config.PINTEREST_DEFAULT_BOARD
-        ):
-            problems.append(f"{label}: pinterest_board is empty and no default board is configured")
+        applicable = platforms_for(item)
+        if not applicable:
+            problems.append(
+                f"{label}: no target platforms (post_to_instagram=false and "
+                f"no pinterest_board)"
+            )
 
     if not problems and logger:
-        logger.info("Queue validation passed for %d row(s)", len(seen_ids))
+        logger.info("Content validation passed for %d item(s)", len(items))
     return problems

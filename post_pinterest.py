@@ -42,8 +42,104 @@ from artbot.runner import run_platform
 
 PLATFORM = "pinterest"
 API_BASE = "https://api.pinterest.com/v5"
+OAUTH_TOKEN_URL = "https://api.pinterest.com/v5/oauth/token"
 
 _AUTH_ERROR_MARKERS = ("401", "403", "unauthor", "forbidden", "not logged in", "login")
+
+
+def _use_v5() -> bool:
+    """Return True when Pinterest API v5 OAuth credentials are configured."""
+    return bool(config.PINTEREST_CLIENT_ID and config.PINTEREST_REFRESH_TOKEN)
+
+
+def _v5_access_token(logger) -> str:
+    """Exchange the refresh token for a Pinterest API v5 access token."""
+    if not config.PINTEREST_CLIENT_SECRET:
+        raise RuntimeError(
+            "PINTEREST_CLIENT_SECRET is required for Pinterest API v5 OAuth"
+        )
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": config.PINTEREST_REFRESH_TOKEN,
+        "client_id": config.PINTEREST_CLIENT_ID,
+        "client_secret": config.PINTEREST_CLIENT_SECRET,
+    }
+    response = requests.post(OAUTH_TOKEN_URL, data=data, timeout=30)
+    response.raise_for_status()
+    token = response.json().get("access_token")
+    if not token:
+        raise RuntimeError("Pinterest OAuth did not return an access_token")
+    logger.info("Obtained Pinterest API v5 access token via refresh token")
+    return token
+
+
+def _v5_headers(access_token: str) -> dict:
+    return {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+
+
+def _v5_board_id(access_token: str, board_value: str, logger) -> str:
+    """Resolve a board name to a board_id via Pinterest API v5."""
+    if board_value.isdigit():
+        return board_value
+
+    params = {"page_size": 100}
+    for _ in range(10):
+        response = requests.get(
+            f"{API_BASE}/boards",
+            headers=_v5_headers(access_token),
+            params=params,
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        for board in payload.get("items", []):
+            if str(board.get("name") or "").strip().casefold() == board_value.casefold():
+                logger.info("Resolved board '%s' to id %s via API v5", board_value, board.get("id"))
+                return str(board["id"])
+        bookmark = payload.get("bookmark")
+        if not bookmark:
+            break
+        params["bookmark"] = bookmark
+
+    raise RuntimeError(
+        f"Pinterest board '{board_value}' was not found through API v5. Check the board name "
+        "and that the token carries the boards:read and pins:write scopes."
+    )
+
+
+def _v5_create_pin(
+    access_token: str,
+    board_value: str,
+    image_path,
+    title: str,
+    description: str,
+    alt_text: str,
+    logger,
+) -> str:
+    """Create a pin via Pinterest API v5 (image sent as base64)."""
+    board_id = _v5_board_id(access_token, board_value, logger)
+    content_type = mimetypes.guess_type(str(image_path))[0] or "image/png"
+    payload = {
+        "board_id": board_id,
+        "title": title,
+        "description": description,
+        "alt_text": alt_text,
+        "media_source": {
+            "source_type": "image_base64",
+            "content_type": content_type,
+            "data": base64.b64encode(image_path.read_bytes()).decode("ascii"),
+        },
+    }
+    response = requests.post(
+        f"{API_BASE}/pins",
+        headers=_v5_headers(access_token),
+        json=payload,
+        timeout=60,
+    )
+    response.raise_for_status()
+    pin_id = response.json().get("id")
+    logger.info("Pin created through API v5")
+    return f"https://www.pinterest.com/pin/{pin_id}/" if pin_id else None
 
 
 def _board_value(row: dict) -> str:

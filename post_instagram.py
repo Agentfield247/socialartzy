@@ -126,20 +126,20 @@ def _upload_photo(client, image_path: Path, caption: str, alt_text: str, logger:
     )
 
 
-def post(row: dict, logger: Optional[logging.Logger] = None, dry_run: bool = False) -> common.PostResult:
-    """Publish a single queue row to Instagram. Never raises."""
+def post(item: dict, logger: Optional[logging.Logger] = None, dry_run: bool = False) -> common.PostResult:
+    """Publish a single content item to Instagram. Never raises."""
     logger = logger or get_logger("instagram")
-    row_id = str(row.get("id", ""))
+    row_id = str(item.get("slug", ""))
 
     try:
-        image_path = common.resolve_image(row.get("image_filename", ""))
+        image_path = common.resolve_item_image(item.get("image", ""))
         caption = common.build_caption(
-            row.get("caption", ""),
-            row.get("hashtags", ""),
+            item.get("caption", ""),
+            item.get("hashtags", ""),
             limit=config.IG_CAPTION_LIMIT,
             logger=logger,
         )
-        alt_text = common.truncate(row.get("alt_text", ""), config.IG_ALT_TEXT_LIMIT)
+        alt_text = common.truncate(item.get("alt_text", ""), config.IG_ALT_TEXT_LIMIT)
 
         logger.info(
             "Instagram plan: image=%s (%d caption chars, %d alt chars)",
@@ -150,7 +150,7 @@ def post(row: dict, logger: Optional[logging.Logger] = None, dry_run: bool = Fal
 
         if dry_run:
             logger.info("[dry-run] Caption that would be posted:\n%s", caption)
-            logger.info("[dry-run] No Instagram request was made and the queue was not modified")
+            logger.info("[dry-run] No Instagram request was made and the item was not modified")
             return common.PostResult(
                 platform=PLATFORM,
                 status=common.DRY_RUN,
@@ -186,7 +186,7 @@ def post(row: dict, logger: Optional[logging.Logger] = None, dry_run: bool = Fal
             hint = " | Session rejected: delete state/instagram_session.json or set IG_SESSIONID."
         elif "rate" in text or "429" in text:
             hint = " | Instagram is throttling requests: lower IG_DAILY_LIMIT and retry tomorrow."
-        logger.exception("Instagram posting failed for row %s", row_id or "?")
+        logger.exception("Instagram posting failed for item %s", row_id or "?")
         return common.PostResult(
             platform=PLATFORM,
             status=common.FAILED,
