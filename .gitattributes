@@ -1,0 +1,9 @@
+# Keep every text file LF in the repository so the bot behaves identically on
+# Windows, macOS and the Linux GitHub Actions runner.
+* text=auto eol=lf
+
+# Binary assets must never be converted
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
