@@ -1,0 +1,12 @@
+# Runtime dependencies
+# Instagram (unofficial private API client, supports set / alt text)
+instagrapi==3.2.2
+# Pinterest (unofficial web client - free, no API key, Selenium login)
+py3-pinterest==2.0.0
+# Image handling (required by instagrapi; also used for the placeholder art)
+Pillow>=13.0.0,<14
+# HTTP client (optional official Pinterest API v5 route)
+requests>=2.34.2,<3
+# Headless Chrome automation used by py3-pinterest's login step
+selenium>=4.20.0
+webdriver-manager>=4.0.0

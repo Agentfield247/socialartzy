@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets - never commit these
+.env
+state/instagram_session.json
+state/pinterest/
+
+# Scratch files
+*.tmp
+logs/*.log.*

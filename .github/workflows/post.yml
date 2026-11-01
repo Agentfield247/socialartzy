@@ -1,0 +1,148 @@
+name: Daily art posting
+
+# Everything runs on GitHub's servers, so your laptop can stay switched off.
+# The queue, the daily counters and logs/posting.log are committed back to the
+# repository after every run, which is how the bot remembers what it posted.
+
+on:
+  schedule:
+    # Every day at 10:00 UTC. Change the hour if your audience is elsewhere:
+    # 10:00 UTC = 11:00 Berlin / 06:00 New York / 15:30 Mumbai.
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which platform(s) to post to"
+        type: choice
+        options:
+          - all
+          - instagram
+          - pinterest
+        default: all
+      max_items:
+        description: "Maximum posts per platform in this run"
+        type: string
+        default: "1"
+      dry_run:
+        description: "Preview only (no posting, queue untouched)"
+        type: boolean
+        default: false
+
+# Needed so the workflow can commit the updated queue, counters and log.
+permissions:
+  contents: write
+
+# Never let two runs post at the same time.
+concurrency:
+  group: socialartzy-posting
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  post:
+    name: Post the next queued artwork
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Ensure Chrome is available for the Pinterest login
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            google-chrome --version
+          else
+            echo "Chrome not found - installing google-chrome-stable"
+            wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+            sudo apt-get update -qq
+            sudo apt-get install -y /tmp/chrome.deb
+          fi
+
+      - name: Restore cached login sessions
+        # Keeps the Instagram session and Pinterest cookies between runs, so a
+        # headless Chrome login is only needed when they really expire.
+        uses: actions/cache@v4
+        with:
+          path: |
+            state/instagram_session.json
+            state/pinterest
+          key: socialartzy-sessions-${{ github.run_id }}
+          restore-keys: |
+            socialartzy-sessions-
+
+      - name: Run the posting bot
+        env:
+          # Repository secrets (Settings -> Secrets and variables -> Actions)
+          IG_USERNAME: ${{ secrets.IG_USERNAME }}
+          IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
+          IG_SESSIONID: ${{ secrets.IG_SESSIONID }}
+          PINTEREST_EMAIL: ${{ secrets.PINTEREST_EMAIL }}
+          PINTEREST_PASSWORD: ${{ secrets.PINTEREST_PASSWORD }}
+          PINTEREST_USERNAME: ${{ secrets.PINTEREST_USERNAME }}
+          PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
+          # Optional repository variables that override the safe defaults
+          IG_DAILY_LIMIT: ${{ vars.IG_DAILY_LIMIT || '2' }}
+          PINTEREST_DAILY_LIMIT: ${{ vars.PINTEREST_DAILY_LIMIT || '3' }}
+          IG_DELAY_RANGE: ${{ vars.IG_DELAY_RANGE || '15,45' }}
+          PINTEREST_DELAY_RANGE: ${{ vars.PINTEREST_DELAY_RANGE || '20,60' }}
+          # Manual run inputs (empty on the scheduled run)
+          PLATFORM: ${{ inputs.platform || 'all' }}
+          MAX_ITEMS: ${{ inputs.max_items || '1' }}
+          DRY_RUN_INPUT: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -eu
+          ARGS="--platform ${PLATFORM} --max-items ${MAX_ITEMS}"
+          if [ "${DRY_RUN_INPUT}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "python run_bot.py ${ARGS}"
+          python run_bot.py ${ARGS}
+
+      - name: Print the log tail
+        if: always()
+        run: tail -n 200 logs/posting.log || true
+
+      - name: Commit the queue, counters and log
+        if: always()
+        run: |
+          set -eu
+          git config user.name "socialartzy-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A content logs
+          if [ -d state ]; then git add -A state; fi
+
+          if git diff --cached --quiet; then
+            echo "Nothing changed - skipping commit"
+            exit 0
+          fi
+
+          git commit -m "chore(bot): update queue, counters and logs [skip ci]"
+
+          BRANCH="${GITHUB_REF_NAME:-main}"
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${BRANCH}" && git push origin "${BRANCH}"; then
+              echo "Pushed to ${BRANCH}"
+              break
+            fi
+            echo "Push attempt ${attempt} failed, retrying in 5s..."
+            sleep 5
+          done
