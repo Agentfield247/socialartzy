@@ -1,5 +1,16 @@
 import { defineConfig } from "tinacms";
 
+const itemFields = [
+  { type: "image", name: "image", label: "Image", required: true },
+  { type: "string", name: "caption", label: "Caption", ui: { component: "textarea" } },
+  { type: "string", name: "alt_text", label: "Alt Text (required for accessibility)", required: true, ui: { component: "textarea" } },
+  { type: "string", name: "hashtags", label: "Hashtags", ui: { component: "textarea" } },
+  { type: "boolean", name: "post_to_instagram", label: "Post to Instagram?", description: "Uncheck for sketches you don't want on Instagram", default: true },
+  { type: "string", name: "pinterest_board", label: "Pinterest Board Name" },
+  { type: "boolean", name: "posted", label: "Posted?", readOnly: true },
+  { type: "string", name: "posted_at", label: "Posted At", readOnly: true },
+];
+
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || "main",
   clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID,
@@ -14,26 +25,7 @@ export default defineConfig({
         path: "content/sketches",
         format: "json",
         ui: { allowedActions: { create: true, delete: true } },
-        fields: {
-          image: { type: "image", label: "Image", required: true },
-          caption: { type: "string", label: "Caption", widget: "textarea" },
-          alt_text: {
-            type: "string",
-            label: "Alt Text (required for accessibility)",
-            required: true,
-            widget: "textarea",
-          },
-          hashtags: { type: "string", label: "Hashtags", widget: "textarea" },
-          post_to_instagram: {
-            type: "boolean",
-            label: "Post to Instagram?",
-            description: "Uncheck for sketches you don't want on Instagram",
-            default: true,
-          },
-          pinterest_board: { type: "string", label: "Pinterest Board Name" },
-          posted: { type: "boolean", label: "Posted?", readOnly: true },
-          posted_at: { type: "string", label: "Posted At", readOnly: true },
-        },
+        fields: itemFields,
       },
       {
         name: "artwork",
@@ -41,26 +33,7 @@ export default defineConfig({
         path: "content/artworks",
         format: "json",
         ui: { allowedActions: { create: true, delete: true } },
-        fields: {
-          image: { type: "image", label: "Image", required: true },
-          caption: { type: "string", label: "Caption", widget: "textarea" },
-          alt_text: {
-            type: "string",
-            label: "Alt Text (required for accessibility)",
-            required: true,
-            widget: "textarea",
-          },
-          hashtags: { type: "string", label: "Hashtags", widget: "textarea" },
-          post_to_instagram: {
-            type: "boolean",
-            label: "Post to Instagram?",
-            description: "Uncheck for sketches you don't want on Instagram",
-            default: true,
-          },
-          pinterest_board: { type: "string", label: "Pinterest Board Name" },
-          posted: { type: "boolean", label: "Posted?", readOnly: true },
-          posted_at: { type: "string", label: "Posted At", readOnly: true },
-        },
+        fields: itemFields,
       },
     ],
   },
