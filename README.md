@@ -57,6 +57,7 @@ To add artwork:
 1. Drop the image into `art/` (JPG or PNG, ideally 1080×1350).
 2. Append a row to `content/queue.csv`.
 3. Commit and push (or edit the file straight in the GitHub web UI).
+
 ## Setup
 
 ### 1. Repository secrets
@@ -108,6 +109,7 @@ python -m unittest discover -s tests -v
 
 Environment variables mirror the secrets (`IG_USERNAME`, `PINTEREST_EMAIL`, ...).
 `DRY_RUN=1` forces preview mode.
+
 ## Safety rails
 
 - **Daily quota** – `state/daily_count.json` is read before every post and reset
@@ -141,4 +143,6 @@ Environment variables mirror the secrets (`IG_USERNAME`, `PINTEREST_EMAIL`, ...)
 - Instagram may challenge a brand-new login coming from a GitHub runner IP. The
   optional `IG_SESSIONID` path exists for exactly that case.
 - Pinterest's official API v5 requires an approved developer app; the free route
-  (py3-pinterest) needs no key, which is why it is the default.# socialartzy
+  (py3-pinterest) needs no key, which is why it is the default.
+
+# socialartzy
