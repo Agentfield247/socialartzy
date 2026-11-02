@@ -107,3 +107,24 @@ pinterest skipped row=-    no pending pinterest items in content/sketches/ or co
 2026-11-02 22:08:09Z | INFO     | artbot       | Run summary:
 pinterest skipped row=-    no pending pinterest items in content/sketches/ or content/artworks/
 2026-11-02 22:08:09Z | INFO     | artbot       | Run finished without errors
+2026-11-02 22:23:53Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:23:53Z | INFO     | artbot       | SocialArtzy daily run | 2026-11-02T22:23:53Z
+2026-11-02 22:23:53Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:23:53Z | INFO     | artbot       | Configuration: IG delay=15-45s limit=2/day, Pinterest delay=20-60s limit=3/day
+2026-11-02 22:23:53Z | INFO     | artbot       | Content validation passed for 1 item(s)
+2026-11-02 22:23:53Z | INFO     | artbot       | Queue status: instagram -> 1 pending, 0/2 posts used today
+2026-11-02 22:23:53Z | INFO     | artbot       | Queue status: pinterest -> 1 pending, 0/3 posts used today
+2026-11-02 22:23:53Z | INFO     | artbot       | pinterest: 0/3 posts already used today (daily limit 3)
+2026-11-02 22:23:53Z | INFO     | artbot       | Selected pinterest item: slug=Pope platforms=instagram,pinterest image=/art/Untitled206_20260603090430.png
+2026-11-02 22:23:53Z | ERROR    | artbot       | Pinterest posting failed for row ?
+Traceback (most recent call last):
+  File "/home/runner/work/socialartzy/socialartzy/post_pinterest.py", line 375, in post
+    image_path = common.resolve_image(row.get("image_filename", ""))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/socialartzy/socialartzy/artbot/common.py", line 141, in resolve_image
+    raise ValueError("Queue row has an empty image_filename")
+ValueError: Queue row has an empty image_filename
+2026-11-02 22:23:53Z | ERROR    | artbot       | pinterest posting failed, stopping this platform for now: ValueError: Queue row has an empty image_filename
+2026-11-02 22:23:53Z | INFO     | artbot       | Run summary:
+pinterest failed  row=-    ValueError: Queue row has an empty image_filename
+2026-11-02 22:23:53Z | ERROR    | artbot       | 1 platform(s) reported a failure - check logs/posting.log above
