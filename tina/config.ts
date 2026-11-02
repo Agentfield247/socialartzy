@@ -1,14 +1,14 @@
-import { defineConfig } from "tinacms";
+import { defineConfig, TinaField } from "tinacms";
 
-const itemFields = [
+const itemFields: TinaField[] = [
   { type: "image", name: "image", label: "Image", required: true },
   { type: "string", name: "caption", label: "Caption", ui: { component: "textarea" } },
   { type: "string", name: "alt_text", label: "Alt Text (required for accessibility)", required: true, ui: { component: "textarea" } },
   { type: "string", name: "hashtags", label: "Hashtags", ui: { component: "textarea" } },
-  { type: "boolean", name: "post_to_instagram", label: "Post to Instagram?", description: "Uncheck for sketches you don't want on Instagram", default: true },
+  { type: "boolean", name: "post_to_instagram", label: "Post to Instagram?", description: "Uncheck for sketches you don't want on Instagram" },
   { type: "string", name: "pinterest_board", label: "Pinterest Board Name" },
-  { type: "boolean", name: "posted", label: "Posted?", readOnly: true },
-  { type: "string", name: "posted_at", label: "Posted At", readOnly: true },
+  { type: "boolean", name: "posted", label: "Posted?" },
+  { type: "string", name: "posted_at", label: "Posted At" },
 ];
 
 export default defineConfig({
