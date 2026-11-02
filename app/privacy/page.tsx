@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
         <h2 className="text-2xl font-semibold mt-8">4. Contact Us</h2>
         <p>
           If you have any questions about this Privacy Policy, please contact us at: 
-          <strong> your-email@example.com</strong> (Replace this with your actual email address).
+          <strong> the247th@gmail.com</strong>.
         </p>
       </section>
     </main>
