@@ -1,8 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-
-const ARTWORKS_DIR = path.join(process.cwd(), 'content', 'artworks');
-const SKETCHES_DIR = path.join(process.cwd(), 'content', 'sketches');
+import fs from "fs";
+import path from "path";
 
 export type ArtItem = {
   slug: string;
@@ -13,30 +10,46 @@ export type ArtItem = {
   posted: boolean;
 };
 
-function load(dir) {
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
-  return files
-    .map(f => {
-      try {
-        const data = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
-        let img = data.image;
-        if (img.startsWith('/')) ;
-        else if (img.startsWith('art/')) img = '/' + img;
-        else img = '/' + img;
-        return {
-          slug: f.replace('.json', ''),
-          image: img,
-          caption: data.caption,
-          alt_text: data.alt_text,
-          hashtags: data.hashtags,
-          posted: data.posted,
-        };
-      } catch { return null; }
-    })
-    .filter(x => x != null)
-    .sort((a, b) => (b.posted ? -1 : 1) - (a.posted ? -1 : 1));
+function load(dir: string): ArtItem[] {
+  try {
+    if (!fs.existsSync(dir)) return [];
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+    return files
+      .map((f) => {
+        try {
+          const filePath = path.join(dir, f);
+          const content = fs.readFileSync(filePath, "utf8");
+          const data = JSON.parse(content);
+          
+          let image = data.image || "";
+          if (image && !image.startsWith("/")) {
+            image = image.startsWith("art/") ? `/${image}` : `/art/${image}`;
+          }
+
+          return {
+            slug: f.replace(".json", ""),
+            image,
+            caption: data.caption || "",
+            alt_text: data.alt_text || "",
+            hashtags: data.hashtags || "",
+            posted: data.posted || false,
+          };
+        } catch (e) {
+          console.error(`Error parsing ${f}:`, e);
+          return null;
+        }
+      })
+      .filter((item): item is ArtItem => item !== null)
+      .sort((a, b) => b.slug.localeCompare(a.slug));
+  } catch (e) {
+    return [];
+  }
 }
 
-export function getArtworks() { return load(path.join(process.cwd(), 'content/artworks')); }
+export function getArtworks(): ArtItem[] {
+  return load(path.join(process.cwd(), "content/artworks"));
+}
 
-export function getSketches() { return load(path.join(process.cwd(), 'content/sketches')); }
+export function getSketches(): ArtItem[] {
+  return load(path.join(process.cwd(), "content/sketches"));
+}
