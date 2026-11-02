@@ -1,8 +1,4 @@
-"""Shared helpers used by both platforms.
-
-Contains the result object returned by every poster, the human-like delay
-simulation, caption/title/alt-text formatting and image resolution.
-"""
+"""Shared helpers used by both platforms."""
 
 from __future__ import annotations
 
@@ -49,11 +45,7 @@ def human_delay(
     reason: str = "the next action",
     dry_run: bool = False,
 ) -> float:
-    """Sleep for a random number of seconds inside ``delay_range``.
-
-    Returns the number of seconds that were (or would have been) waited.
-    Nothing is slept when ``dry_run`` is set, so local previews stay instant.
-    """
+    """Sleep for a random number of seconds inside ``delay_range``."""
     low, high = int(delay_range[0]), int(delay_range[1])
     seconds = round(random.uniform(low, high), 1)
 
@@ -110,11 +102,7 @@ def build_caption(caption: str, hashtags: str, *, limit: int, logger: logging.Lo
 
 
 def derive_title(caption: str, *, limit: int, soft_limit: Optional[int] = None) -> str:
-    """Derive a short, readable title from the first line/sentence of a caption.
-
-    ``soft_limit`` shortens a long opening sentence at the first natural clause
-    break (comma, dash, colon) so Pinterest titles stay scannable.
-    """
+    """Derive a short, readable title from the first line/sentence of a caption."""
     first_line = (caption or "").strip().splitlines()[0] if (caption or "").strip() else ""
     parts = re.split(r"(?<=[.!?])\s+", first_line.strip())
     title = parts[0].strip() if parts and parts[0].strip() else "New artwork"
@@ -129,12 +117,7 @@ def derive_title(caption: str, *, limit: int, soft_limit: Optional[int] = None) 
 
 
 def resolve_image(image_filename: str, *, art_dir: Optional[Path] = None) -> Path:
-    """Return the absolute path of an image inside ``art/``.
-
-    Raises ``ValueError`` if the filename tries to escape the art folder and
-    ``FileNotFoundError`` when the file is missing, so a bad queue row fails
-    loudly in the Actions log instead of silently posting nothing.
-    """
+    """Return the absolute path of an image inside ``art/``."""
     base = Path(art_dir or config.ART_DIR).resolve()
     raw_name = (image_filename or "").strip()
     if not raw_name:
@@ -150,17 +133,20 @@ def resolve_image(image_filename: str, *, art_dir: Optional[Path] = None) -> Pat
     return candidate
 
 
-def resolve_item_image(image_field: str) -> Path:
+def resolve_item_image(item_or_image) -> Path:
     """Resolve a JSON item's ``image`` field to a file under ``public/art/``.
-
-    Accepts three forms:
-      * ``art/foo.png``        -> public/art/foo.png
-      * ``/art/foo.png``       -> public/art/foo.png
-      * ``foo.png``            -> public/art/foo.png
-
-    Raises ``ValueError`` on empty or traversal paths and
-    ``FileNotFoundError`` when the resolved file does not exist.
+    Accepts either the whole item dictionary or just the image string.
     """
+    # 1. If a dictionary is passed, extract the 'image' field
+    if isinstance(item_or_image, dict):
+        image_field = item_or_image.get("image", "")
+    else:
+        image_field = item_or_image
+
+    # 2. If the image_field is a dict (TinaCMS format), extract 'src'
+    if isinstance(image_field, dict):
+        image_field = image_field.get("src", "")
+
     raw = (image_field or "").strip()
     if not raw:
         raise ValueError("Item has an empty image field")
@@ -171,10 +157,9 @@ def resolve_item_image(image_field: str) -> Path:
         name = name[1:]
     if name.startswith("art/"):
         name = name[4:]
-    # Also strip a leading "./"
     if name.startswith("./"):
         name = name[2:]
-    # Extract just the basename to prevent traversal
+    
     from pathlib import PurePosixPath
     name = str(PurePosixPath(name).name)
     if not name:
