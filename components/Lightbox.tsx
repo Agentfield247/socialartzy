@@ -1,40 +1,54 @@
 "use client";
 
-interface ArtItem {
-  slug: string;
-  image: string;
-  caption: string;
-  alt_text: string;
-}
+import Image from "next/image";
+import { useEffect } from "react";
+import { ArtItem } from "@/lib/content";
 
-export function Lightbox({ item, onClose }: { item: ArtItem | null; onClose: () => void }) {
+export default function Lightbox({
+  item,
+  onClose,
+}: {
+  item: ArtItem | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
   if (!item) return null;
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      aria-label="Lightbox"
-      role="dialog"
-      aria-modal="true"
+      onClick={onClose}
     >
-      <div className="relative max-w-3xl max-h-[90vh] w-full">
-        <Image
-          src={item.image}
-          alt={item.alt_text}
-          width={1200}
-          height={1500}
-          className="object-contain w-full h-auto max-h-[75vh]"
-        />
-        <div className="absolute top-4 left-4 text-white">
-          {item.caption}
-        </div>
-        <div className="absolute bottom-4 right-4 text-white">
-          {item.alt_text}
-        </div>
+      <div
+        className="relative max-w-3xl max-h-[90vh] w-full flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-2xl text-white"
-          aria-label="Close"
-        >&times;</button>
+          className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300"
+        >
+          &times;
+        </button>
+        <div className="relative w-full h-[75vh]">
+          <Image
+            src={item.image}
+            alt={item.alt_text}
+            fill
+            className="object-contain"
+            sizes="(max-width: 1200px) 100vw, 1200px"
+          />
+        </div>
+        <div className="mt-4 text-center text-white">
+          <p className="text-lg">{item.caption}</p>
+          <p className="text-sm text-gray-400 mt-2">{item.alt_text}</p>
+        </div>
       </div>
     </div>
   );
