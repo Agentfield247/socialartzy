@@ -372,7 +372,7 @@ def post(row: dict, logger: Optional[logging.Logger] = None, dry_run: bool = Fal
     row_id = str(row.get("id", ""))
 
     try:
-        image_path = common.resolve_image(row.get("image_filename", ""))
+        image_path = common.resolve_image(row.get("image", ""))
         board_value = _board_value(row)
         title = common.derive_title(
             row.get("caption", ""), limit=config.PINTEREST_TITLE_LIMIT, soft_limit=60
