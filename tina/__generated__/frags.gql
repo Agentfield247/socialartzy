@@ -1,0 +1,23 @@
+fragment SketchParts on Sketch {
+  __typename
+  image
+  caption
+  alt_text
+  hashtags
+  post_to_instagram
+  pinterest_board
+  posted
+  posted_at
+}
+
+fragment ArtworkParts on Artwork {
+  __typename
+  image
+  caption
+  alt_text
+  hashtags
+  post_to_instagram
+  pinterest_board
+  posted
+  posted_at
+}
