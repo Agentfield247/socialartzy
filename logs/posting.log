@@ -1,1 +1,5 @@
 ﻿SocialArtzy posting log (UTC). One block per workflow run.
+2026-11-02 12:06:14Z | INFO     | artbot       | ========================================================================
+2026-11-02 12:06:14Z | INFO     | artbot       | SocialArtzy daily run | 2026-11-02T12:06:14Z
+2026-11-02 12:06:14Z | INFO     | artbot       | ========================================================================
+2026-11-02 12:06:14Z | INFO     | artbot       | Configuration: IG delay=15-45s limit=2/day, Pinterest delay=20-60s limit=3/day
