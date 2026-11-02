@@ -7,3 +7,7 @@
 *.jpg binary
 *.jpeg binary
 *.webp binary
+
+# Tell Git how to handle automated bot updates without crashing
+logs/posting.log merge=union
+state/daily_count.json merge=ours
