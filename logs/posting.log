@@ -149,3 +149,25 @@ ValueError: image_filename escapes the art/ folder: '/art/Untitled206_2026060309
 2026-11-02 22:27:29Z | INFO     | artbot       | Run summary:
 pinterest failed  row=-    ValueError: image_filename escapes the art/ folder: '/art/Untitled206_20260603090430.png'
 2026-11-02 22:27:29Z | ERROR    | artbot       | 1 platform(s) reported a failure - check logs/posting.log above
+2026-11-02 22:33:45Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:33:45Z | INFO     | artbot       | SocialArtzy daily run | 2026-11-02T22:33:45Z
+2026-11-02 22:33:45Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:33:45Z | INFO     | artbot       | Configuration: IG delay=15-45s limit=2/day, Pinterest delay=20-60s limit=3/day
+2026-11-02 22:33:45Z | INFO     | artbot       | Content validation passed for 1 item(s)
+2026-11-02 22:33:45Z | INFO     | artbot       | Queue status: instagram -> 1 pending, 0/2 posts used today
+2026-11-02 22:33:45Z | INFO     | artbot       | Queue status: pinterest -> 1 pending, 0/3 posts used today
+2026-11-02 22:33:45Z | INFO     | artbot       | pinterest: 0/3 posts already used today (daily limit 3)
+2026-11-02 22:33:45Z | INFO     | artbot       | Selected pinterest item: slug=Pope platforms=instagram,pinterest image=/art/Untitled206_20260603090430.png
+2026-11-02 22:33:45Z | ERROR    | artbot       | Pinterest posting failed for row ?
+Traceback (most recent call last):
+  File "/home/runner/work/socialartzy/socialartzy/post_pinterest.py", line 375, in post
+    image_path = common.resolve_item_image(row)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/socialartzy/socialartzy/artbot/common.py", line 164, in resolve_item_image
+    raw = (image_field or "").strip()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'strip'
+2026-11-02 22:33:45Z | ERROR    | artbot       | pinterest posting failed, stopping this platform for now: AttributeError: 'dict' object has no attribute 'strip'
+2026-11-02 22:33:45Z | INFO     | artbot       | Run summary:
+pinterest failed  row=-    AttributeError: 'dict' object has no attribute 'strip'
+2026-11-02 22:33:45Z | ERROR    | artbot       | 1 platform(s) reported a failure - check logs/posting.log above
