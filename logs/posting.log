@@ -171,3 +171,27 @@ AttributeError: 'dict' object has no attribute 'strip'
 2026-11-02 22:33:45Z | INFO     | artbot       | Run summary:
 pinterest failed  row=-    AttributeError: 'dict' object has no attribute 'strip'
 2026-11-02 22:33:45Z | ERROR    | artbot       | 1 platform(s) reported a failure - check logs/posting.log above
+2026-11-02 22:38:48Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:38:48Z | INFO     | artbot       | SocialArtzy daily run | 2026-11-02T22:38:48Z
+2026-11-02 22:38:48Z | INFO     | artbot       | ========================================================================
+2026-11-02 22:38:48Z | INFO     | artbot       | Configuration: IG delay=15-45s limit=2/day, Pinterest delay=20-60s limit=3/day
+2026-11-02 22:38:48Z | INFO     | artbot       | Content validation passed for 1 item(s)
+2026-11-02 22:38:48Z | INFO     | artbot       | Queue status: instagram -> 1 pending, 0/2 posts used today
+2026-11-02 22:38:48Z | INFO     | artbot       | Queue status: pinterest -> 1 pending, 0/3 posts used today
+2026-11-02 22:38:48Z | INFO     | artbot       | pinterest: 0/3 posts already used today (daily limit 3)
+2026-11-02 22:38:48Z | INFO     | artbot       | Selected pinterest item: slug=Pope platforms=instagram,pinterest image=/art/Untitled206_20260603090430.png
+2026-11-02 22:38:48Z | INFO     | artbot       | Pinterest plan: board=Muka's Art image=Untitled206_20260603090430.png title='Forgive me father for I have dripped' (91 description chars)
+2026-11-02 22:38:48Z | INFO     | artbot       | Waiting 46.0s before the Pinterest pin (human-like pacing)
+2026-11-02 22:39:35Z | INFO     | artbot       | Launching headless Chrome to log in to Pinterest as bamidelemuhammad24@gmail.com (this can take a minute)
+2026-11-02 22:40:37Z | ERROR    | artbot       | Pinterest posting failed for row ?
+Traceback (most recent call last):
+  File "/home/runner/work/socialartzy/socialartzy/post_pinterest.py", line 412, in post
+    session = _session(logger)
+              ^^^^^^^^^^^^^^^^
+  File "/home/runner/work/socialartzy/socialartzy/post_pinterest.py", line 188, in _session
+    raise RuntimeError(
+RuntimeError: Pinterest login did not return any cookies. Pinterest may be showing a captcha or asking for email verification - log in once in a normal browser, or switch to PINTEREST_ACCESS_TOKEN (official API v5).
+2026-11-02 22:40:37Z | ERROR    | artbot       | pinterest posting failed, stopping this platform for now: RuntimeError: Pinterest login did not return any cookies. Pinterest may be showing a captcha or asking for email verification - log in once in a normal browser, or switch to PINTEREST_ACCESS_TOKEN (official API v5). | Pinterest is showing a captcha: log in once manually or use PINTEREST_ACCESS_TOKEN.
+2026-11-02 22:40:37Z | INFO     | artbot       | Run summary:
+pinterest failed  row=-    RuntimeError: Pinterest login did not return any cookies. Pinterest may be showing a captcha or asking for email verification - log in once in a normal browser, or switch to PINTEREST_ACCESS_TOKEN (official API v5). | Pinterest is showing a captcha: log in once manually or use PINTEREST_ACCESS_TOKEN.
+2026-11-02 22:40:37Z | ERROR    | artbot       | 1 platform(s) reported a failure - check logs/posting.log above
