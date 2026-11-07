@@ -255,3 +255,18 @@ pinterest skipped row=-    no pending pinterest items in content/sketches/ or co
 instagram skipped row=-    no pending instagram items in content/sketches/ or content/artworks/
 pinterest skipped row=-    no pending pinterest items in content/sketches/ or content/artworks/
 2026-11-06 17:14:46Z | INFO     | artbot       | Run finished without errors
+2026-11-07 16:08:31Z | INFO     | artbot       | ========================================================================
+2026-11-07 16:08:31Z | INFO     | artbot       | SocialArtzy daily run | 2026-11-07T16:08:31Z
+2026-11-07 16:08:31Z | INFO     | artbot       | ========================================================================
+2026-11-07 16:08:31Z | INFO     | artbot       | Configuration: IG delay=15-45s limit=2/day, Pinterest delay=20-60s limit=3/day
+2026-11-07 16:08:31Z | INFO     | artbot       | Content validation passed for 1 item(s)
+2026-11-07 16:08:31Z | INFO     | artbot       | Queue status: instagram -> 1 pending, 0/2 posts used today
+2026-11-07 16:08:31Z | INFO     | artbot       | Queue status: pinterest -> 1 pending, 0/3 posts used today
+2026-11-07 16:08:31Z | INFO     | artbot       | instagram: 0/2 posts already used today (daily limit 2)
+2026-11-07 16:08:31Z | INFO     | artbot       | instagram: no pending instagram items in content/sketches/ or content/artworks/
+2026-11-07 16:08:31Z | INFO     | artbot       | pinterest: 0/3 posts already used today (daily limit 3)
+2026-11-07 16:08:31Z | INFO     | artbot       | pinterest: no pending pinterest items in content/sketches/ or content/artworks/
+2026-11-07 16:08:31Z | INFO     | artbot       | Run summary:
+instagram skipped row=-    no pending instagram items in content/sketches/ or content/artworks/
+pinterest skipped row=-    no pending pinterest items in content/sketches/ or content/artworks/
+2026-11-07 16:08:31Z | INFO     | artbot       | Run finished without errors
